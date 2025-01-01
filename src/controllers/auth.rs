@@ -119,7 +119,7 @@ async fn reset(State(ctx): State<AppContext>, Json(params): Json<ResetParams>) -
 
     let user = Retry::spawn(retry_strategy, || users::Model::find_by_reset_token(&ctx.db, &params.token)).await;
 
-    let Ok(user) = user else {
+let Ok(user) = user else {
         // we don't want to expose our users email. if the email is invalid we still
         // returning success to the caller
         tracing::info!("reset token not found");
