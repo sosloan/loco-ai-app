@@ -99,4 +99,27 @@ jobs:
         env:
           REDIS_URL: redis://localhost:${{job.services.redis.ports[6379]}}
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres_test
-          
+
+  test_examples:
+    name: Run Example Tests
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+      - name: Run cargo test for examples
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --test examples/playground.rs
+        env:
+          REDIS_URL: redis://localhost:${{job.services.redis.ports[6379]}}
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres_test
