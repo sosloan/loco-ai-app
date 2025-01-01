@@ -163,6 +163,15 @@ async fn current(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Respo
     format::json(CurrentResponse::new(&user))
 }
 
+#[debug_handler]
+async fn new_users(State(ctx): State<AppContext>) -> Result<Response> {
+    let retry_strategy = ExponentialBackoff::from_millis(10).map(jitter).take(3);
+
+    let new_users = Retry::spawn(retry_strategy, || users::Model::find_new_users(&ctx.db)).await?;
+
+    format::json(new_users)
+}
+
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api/auth")
@@ -172,4 +181,5 @@ pub fn routes() -> Routes {
         .add("/forgot", post(forgot))
         .add("/reset", post(reset))
         .add("/current", get(current))
+        .add("/new_users", get(new_users))
 }
