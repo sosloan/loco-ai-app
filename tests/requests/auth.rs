@@ -216,3 +216,26 @@ async fn can_get_current_user() {
     })
     .await;
 }
+
+#[tokio::test]
+#[serial]
+async fn can_fetch_new_users() {
+    configure_insta!();
+
+    testing::request::<App, _, _>(|request, ctx| async move {
+        let user = prepare_data::init_user_login(&request, &ctx).await;
+
+        let (auth_key, auth_value) = prepare_data::auth_header(&user.token);
+        let response = request
+            .get("/api/auth/new_users")
+            .add_header(auth_key, auth_value)
+            .await;
+
+        with_settings!({
+            filters => testing::cleanup_user_model()
+        }, {
+            assert_debug_snapshot!((response.status_code(), response.text()));
+        });
+    })
+    .await;
+}

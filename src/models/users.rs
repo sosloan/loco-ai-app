@@ -222,6 +222,21 @@ impl super::_entities::users::Model {
     pub fn generate_jwt(&self, secret: &str, expiration: &u64) -> ModelResult<String> {
         Ok(jwt::JWT::new(secret).generate_token(expiration, self.pid.to_string(), None)?)
     }
+
+    /// Finds new users
+    ///
+    /// # Errors
+    ///
+    /// When could not find new users or DB query error
+    pub async fn find_new_users(db: &DatabaseConnection) -> ModelResult<Vec<String>> {
+        let new_users = users::Entity::find()
+            .order_by_desc(users::Column::CreatedAt)
+            .limit(3)
+            .all(db)
+            .await?;
+
+        Ok(new_users.into_iter().map(|user| user.name).collect())
+    }
 }
 
 impl super::_entities::users::ActiveModel {
