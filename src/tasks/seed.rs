@@ -1,19 +1,3 @@
-//! This task implements data seeding functionality for initializing new
-//! development/demo environments.
-//!
-//! # Example
-//!
-//! Run the task with the following command:
-//! ```sh
-//! cargo run task
-//! ```
-//!
-//! To override existing data and reset the data structure, use the following
-//! command with the `refresh:true` argument:
-//! ```sh
-//! cargo run task seed_data refresh:true
-//! ```
-
 use loco_rs::{db, prelude::*};
 use migration::Migrator;
 
