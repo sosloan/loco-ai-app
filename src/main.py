@@ -6,6 +6,7 @@ from tempfile import TemporaryDirectory
 from typing import Dict, List, Tuple
 
 import modal
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from .env_templates import TEMPLATES, EnvTemplate
 
@@ -45,6 +46,7 @@ def write_files(code: Dict[str, str], dir: Path):
             f.write(contents)
 
 
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def run_in_sandbox(state: State, template: EnvTemplate) -> Tuple[int, str, str]:
     try:
         logger.info("Creating temporary directory for sandbox execution.")

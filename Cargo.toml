@@ -32,6 +32,7 @@ include_dir = "0.7"
 # view engine i18n
 fluent-templates = { version = "0.8.0", features = ["tera"] }
 unic-langid = "0.9.4"
+tokio-retry = "0.3.0"
 # /view engine
 
 [[bin]]

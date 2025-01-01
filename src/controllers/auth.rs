@@ -1,6 +1,8 @@
 use axum::debug_handler;
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
+use tokio_retry::strategy::{ExponentialBackoff, jitter};
+use tokio_retry::Retry;
 
 use crate::{
     mailers::auth::AuthMailer,
@@ -33,7 +35,9 @@ async fn register(
     State(ctx): State<AppContext>,
     Json(params): Json<RegisterParams>,
 ) -> Result<Response> {
-    let res = users::Model::create_with_password(&ctx.db, &params).await;
+    let retry_strategy = ExponentialBackoff::from_millis(10).map(jitter).take(3);
+
+    let res = Retry::spawn(retry_strategy, || users::Model::create_with_password(&ctx.db, &params)).await;
 
     let user = match res {
         Ok(user) => user,
@@ -64,7 +68,9 @@ async fn verify(
     State(ctx): State<AppContext>,
     Json(params): Json<VerifyParams>,
 ) -> Result<Response> {
-    let user = users::Model::find_by_verification_token(&ctx.db, &params.token).await?;
+    let retry_strategy = ExponentialBackoff::from_millis(10).map(jitter).take(3);
+
+    let user = Retry::spawn(retry_strategy, || users::Model::find_by_verification_token(&ctx.db, &params.token)).await?;
 
     if user.email_verified_at.is_some() {
         tracing::info!(pid = user.pid.to_string(), "user already verified");
@@ -86,7 +92,11 @@ async fn forgot(
     State(ctx): State<AppContext>,
     Json(params): Json<ForgotParams>,
 ) -> Result<Response> {
-    let Ok(user) = users::Model::find_by_email(&ctx.db, &params.email).await else {
+    let retry_strategy = ExponentialBackoff::from_millis(10).map(jitter).take(3);
+
+    let user = Retry::spawn(retry_strategy, || users::Model::find_by_email(&ctx.db, &params.email)).await;
+
+    let Ok(user) = user else {
         // we don't want to expose our users email. if the email is invalid we still
         // returning success to the caller
         return format::json(());
@@ -105,7 +115,11 @@ async fn forgot(
 /// reset user password by the given parameters
 #[debug_handler]
 async fn reset(State(ctx): State<AppContext>, Json(params): Json<ResetParams>) -> Result<Response> {
-    let Ok(user) = users::Model::find_by_reset_token(&ctx.db, &params.token).await else {
+    let retry_strategy = ExponentialBackoff::from_millis(10).map(jitter).take(3);
+
+    let user = Retry::spawn(retry_strategy, || users::Model::find_by_reset_token(&ctx.db, &params.token)).await;
+
+    let Ok(user) = user else {
         // we don't want to expose our users email. if the email is invalid we still
         // returning success to the caller
         tracing::info!("reset token not found");
@@ -122,7 +136,9 @@ async fn reset(State(ctx): State<AppContext>, Json(params): Json<ResetParams>) -
 /// Creates a user login and returns a token
 #[debug_handler]
 async fn login(State(ctx): State<AppContext>, Json(params): Json<LoginParams>) -> Result<Response> {
-    let user = users::Model::find_by_email(&ctx.db, &params.email).await?;
+    let retry_strategy = ExponentialBackoff::from_millis(10).map(jitter).take(3);
+
+    let user = Retry::spawn(retry_strategy, || users::Model::find_by_email(&ctx.db, &params.email)).await?;
 
     let valid = user.verify_password(&params.password);
 
@@ -141,7 +157,9 @@ async fn login(State(ctx): State<AppContext>, Json(params): Json<LoginParams>) -
 
 #[debug_handler]
 async fn current(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
-    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let retry_strategy = ExponentialBackoff::from_millis(10).map(jitter).take(3);
+
+    let user = Retry::spawn(retry_strategy, || users::Model::find_by_pid(&ctx.db, &auth.claims.pid)).await?;
     format::json(CurrentResponse::new(&user))
 }
 
