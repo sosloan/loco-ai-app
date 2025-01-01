@@ -14,12 +14,23 @@ export const EmojiGame: React.FC<EmojiGameProps> = ({ gameId, playerId }) => {
   const game = useQuery(api.games.getGame, { gameId });
   const submitGuess = useMutation(api.games.submitGuess);
   const [isReady, setIsReady] = useState(false);
+  const [newUsers, setNewUsers] = useState<string[]>([]);
 
   useEffect(() => {
     if (game && game.status === 'waiting') {
       setIsReady(true);
     }
   }, [game]);
+
+  useEffect(() => {
+    const fetchNewUsers = async () => {
+      const response = await fetch('/api/auth/new_users');
+      const data = await response.json();
+      setNewUsers(data);
+    };
+
+    fetchNewUsers();
+  }, []);
 
   const handleGuess = async (guess: string) => {
     await submitGuess({ gameId, playerId, guess });
@@ -52,6 +63,13 @@ export const EmojiGame: React.FC<EmojiGameProps> = ({ gameId, playerId }) => {
           <Typography key={player}>
             {player}: {game.scores[player]} points
           </Typography>
+        ))}
+      </Box>
+
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="h6">New Users:</Typography>
+        {newUsers.map((user, index) => (
+          <Typography key={index}>{user}</Typography>
         ))}
       </Box>
     </Box>

@@ -1,1 +1,1 @@
-Your reset password link
+Reset Your Password
